@@ -1,0 +1,46 @@
+dataset:
+  data_type: "bag_ouster"
+  topic: "/os1_cloud_node1/points"
+  path: "/home/zx/Data/Disk2/NTU_VIRAL/eee_03/eee_03.bag"
+  save_pose: true
+  pose_file_path: "estimated_pose.txt"
+
+calibration:
+  time_offset: 0.1
+  T_body_lidar: [ 1.0,  0.0,  0.0, -0.050,
+                  0.0,  1.0,  0.0,  0.000,
+                  0.0,  0.0,  1.0,  0.055,
+                  0.0,  0.0,  0.0,  1.000 ]
+  T_body_gt: [ 1.0,  0.0,  0.0, -0.293656,
+               0.0,  1.0,  0.0, -0.012288,
+               0.0,  0.0,  1.0, -0.273095,
+               0.0,  0.0,  0.0,  1.0 ]
+
+trajectory:
+  init_interval: 2e8
+  seg_interval: 4e7
+  seg_num: 3
+  kinematic_constrain: 2
+  init_pose_weight: 1e9
+  converge_thresh: 0.001
+  max_iterations: 25
+
+mapping:
+  ds_size: 0.8
+  voxel_size: 0.8
+  max_voxel_num: 20
+  planer_thresh: 0.1
+  max_range: 120
+  min_range: 1
+
+vis:
+  frame_num: 1
+  point_num: 5
+  T_vis_lidar: [ 0.0,  1.0,  0.0, 0.0,
+                 1.0,  0.0,  0.0,  0.0,
+                 0.0,  0.0,  -1.0,  0.0,
+                 0.0,  0.0,  0.0,  1.000 ]
+
+
+
+

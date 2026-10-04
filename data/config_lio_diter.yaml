@@ -1,0 +1,59 @@
+# Traj-LO-IMU config for the DiTer++ Forest/Lawn sequences (agent1, Ouster + ouster imu)
+# Sequences: Forest_new / lawn_go2_lower_day / lawn_go2_upper_day /
+# Lawn_go2_lower_night / Lawn_go2_upper_night (Lawn bags live on LiWeishuaiB).
+# To switch sequence, only change dataset.path (topics/extrinsics are shared).
+dataset:
+  data_type: "bag_ouster"
+  topic: "/agent1/ouster/points"
+  path: "/path/to/Forest_new.bag"
+  save_pose: true
+  pose_file_path: "traj_diter.tum"
+
+calibration:
+  time_offset: 0.0
+  # lidar -> IMU extrinsic (p_imu = R * p_lidar + T), same as Leg-KILO config
+  T_body_lidar: [ 1.0,  0.0,  0.0,  0.005,
+                  0.0,  1.0,  0.0,  0.00056,
+                  0.0,  0.0,  1.0,  0.299,
+                  0.0,  0.0,  0.0,  1.0 ]
+  T_body_gt: [ 1.0,  0.0,  0.0,  0.0,
+               0.0,  1.0,  0.0,  0.0,
+               0.0,  0.0,  1.0,  0.0,
+               0.0,  0.0,  0.0,  1.0 ]
+
+trajectory:
+  init_interval: 3e8
+  seg_interval: 4e7
+  seg_num: 3
+  kinematic_constrain: 2.0
+  init_pose_weight: 1e9
+  converge_thresh: 0.001
+  max_iterations: 25
+
+mapping:
+  ds_size: 0.5
+  voxel_size: 0.5
+  max_voxel_num: 20
+  planer_thresh: 0.1
+  max_range: 120
+  min_range: 1
+
+vis:
+  frame_num: 1
+  point_num: 10
+  T_vis_lidar: [ 1.0,  0.0,  0.0,  0.0,
+                 0.0,  1.0,  0.0,  0.0,
+                 0.0,  0.0,  1.0,  0.0,
+                 0.0,  0.0,  0.0,  1.0 ]
+
+# imu fusion (IMU mode). Noise densities deliberately inflated for
+# legged-robot foot-impact vibration; validated on legkilo + quadruped (M4/M5).
+imu:
+  enabled: true
+  topic: "/agent1/ouster/imu"
+  sigma_ng: 5e-2
+  sigma_na: 5e-1
+  sigma_bg_rw: 1e-4
+  sigma_ba_rw: 1e-3
+  imu_weight: 0.1
+  init_time: 0.8

@@ -1,0 +1,49 @@
+# the config file for Hesai LiDAR
+# support Dataset: Hilti 2022, 2023. For a better performance, you need to finetune the following parameters.
+# Traj-LO is a lidar-only method, so it may fail in the narrow space when there is few valid point to get geometric constrain.
+dataset:
+  data_type: "bag_hesai"
+  topic: "/hesai/pandar"
+  path: "/home/zx/Data/Disk2/hilti2022/exp01_construction_ground_level.bag"
+  save_pose: true
+  pose_file_path: "estimated_pose.txt"
+
+calibration:
+  time_offset: 0.0
+  T_body_lidar: [ 1.0,  0.0,  0.0, 0.0,
+                  0.0,  1.0,  0.0,  0.0,
+                  0.0,  0.0,  1.0,  0.0,
+                  0.0,  0.0,  0.0,  1.0 ]
+  T_body_gt: [ 1.0,  0.0,  0.0, 0.0,
+               0.0,  1.0,  0.0,  0.0,
+               0.0,  0.0,  1.0,  0.0,
+               0.0,  0.0,  0.0,  1.0 ]
+
+trajectory:
+  init_interval: 3e8
+  seg_interval: 4e7
+  seg_num: 3
+  kinematic_constrain: 2.0
+  init_pose_weight: 1e9
+  converge_thresh: 0.001
+  max_iterations: 25
+
+mapping:
+  ds_size: 0.4
+  voxel_size: 0.4
+  max_voxel_num: 20
+  planer_thresh: 0.1
+  max_range: 120
+  min_range: 0.3
+
+vis:
+  frame_num: 1
+  point_num: 5
+  T_vis_lidar: [ 1.0,  0.0,  0.0, 0.0,
+                 0.0,  1.0,  0.0,  0.0,
+                 0.0,  0.0,  1.0,  0.0,
+                 0.0,  0.0,  0.0,  1.0 ]
+
+
+
+

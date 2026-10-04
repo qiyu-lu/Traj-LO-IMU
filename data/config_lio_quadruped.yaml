@@ -1,0 +1,59 @@
+# Traj-LO-IMU config for the Quadruped-SLAM dataset (Go2, Velodyne + /go2_imu_sensor)
+# Sequences: BuildingInside00 / BuildingOutside00-01 / Forest00-01 / Grassland00-02 /
+# Hill00-01 / Road00-02 / ... under the same directory.
+# To switch sequence, only change dataset.path (topics/extrinsics are shared).
+dataset:
+  data_type: "bag_velodyne"
+  topic: "/velodyne_points"
+  path: "/path/to/Grassland00.bag"
+  save_pose: true
+  pose_file_path: "traj_quadruped.tum"
+
+calibration:
+  time_offset: 0.0
+  # lidar -> IMU extrinsic (p_imu = R * p_lidar + T), same as Leg-KILO config
+  T_body_lidar: [ 0.0, -1.0,  0.0,  0.171,
+                  1.0,  0.0,  0.0,  0.0,
+                  0.0,  0.0,  1.0,  0.0908,
+                  0.0,  0.0,  0.0,  1.0 ]
+  T_body_gt: [ 1.0,  0.0,  0.0,  0.0,
+               0.0,  1.0,  0.0,  0.0,
+               0.0,  0.0,  1.0,  0.0,
+               0.0,  0.0,  0.0,  1.0 ]
+
+trajectory:
+  init_interval: 3e8
+  seg_interval: 4e7
+  seg_num: 3
+  kinematic_constrain: 2.0
+  init_pose_weight: 1e9
+  converge_thresh: 0.001
+  max_iterations: 25
+
+mapping:
+  ds_size: 0.4
+  voxel_size: 0.4
+  max_voxel_num: 20
+  planer_thresh: 0.1
+  max_range: 120
+  min_range: 1
+
+vis:
+  frame_num: 1
+  point_num: 5
+  T_vis_lidar: [ 1.0,  0.0,  0.0,  0.0,
+                 0.0,  1.0,  0.0,  0.0,
+                 0.0,  0.0,  1.0,  0.0,
+                 0.0,  0.0,  0.0,  1.0 ]
+
+# imu fusion (IMU mode). Noise densities deliberately inflated for
+# legged-robot foot-impact vibration; validated on legkilo + quadruped (M4/M5).
+imu:
+  enabled: true
+  topic: "/go2_imu_sensor"
+  sigma_ng: 5e-2
+  sigma_na: 5e-1
+  sigma_bg_rw: 1e-4
+  sigma_ba_rw: 1e-3
+  imu_weight: 0.1
+  init_time: 0.8
