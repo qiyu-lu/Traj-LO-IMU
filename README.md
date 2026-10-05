@@ -37,7 +37,7 @@ The window is solved with Gauss-Newton. The oldest knot is then marginalized by 
 Tested on Ubuntu 20.04. ROS is **not** required: rosbags are read directly.
 
 ```bash
-git clone https://github.com/qiyu-lu/Traj-LO-IMU.git
+git clone --recursive https://github.com/qiyu-lu/Traj-LO-IMU.git
 cd Traj-LO-IMU
 ./scripts/install_deps.sh        # system packages (TBB, Boost, GLFW, ...)
 mkdir build && cd build
@@ -45,7 +45,8 @@ cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j8
 ```
 
-Eigen, Sophus, yaml-cpp and the other libraries are vendored in `thirdparty/`.
+Eigen, Sophus, yaml-cpp, GLM, robin-map and oneTBB are git submodules in `thirdparty/`, pinned to the same commits as upstream Traj-LO; ImGui, ImPlot and the rosbag reader are included directly.
+If you cloned without `--recursive`, run `git submodule update --init --recursive`. GitHub's "Download ZIP" does not include submodules, so please use `git clone`.
 If CMake fails inside oneTBB under a non-English locale, run `export LANG=C LC_ALL=C` first.
 
 Optional unit test for the preintegration Jacobians:
