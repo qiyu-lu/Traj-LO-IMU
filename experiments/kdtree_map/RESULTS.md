@@ -27,3 +27,30 @@ fast as possible, 16 threads).
 
 Reproduce: `python3 kd_compare.py OUT_DIR [name=key:val,...]`, e.g.
 `kdtree05=map_type:kdtree,kd_min_dist:0.05`.
+
+## kd_min_dist sweep (3 repeats each)
+
+5 sequences, every configuration run 3 times (repeats interleaved). Mean APE
+in meters; the range over the 3 runs is given where it is not zero.
+
+| Sequence | voxel | kd 0.05 | kd 0.10 | kd 0.20 |
+|---|---:|---:|---:|---:|
+| legkilo/indoor | 0.0568 | **0.0523** | 0.0532 | 0.0542 |
+| legkilo/running | **0.0612** (0.061-0.062) | 0.0694 | 0.0750 | 0.0669 |
+| quadruped/IndoorStairwell00 | 0.1599 | 0.1322 | **0.1304** | 0.1645 |
+| quadruped/BuildingInside00 | 0.0928 | 0.0900 | **0.0851** | 0.0900 |
+| quadruped/OutdoorNarrowStairs00 | 0.3044 (0.168-0.556) | **0.1776** | 0.1944 | 0.2193 |
+| mean RPE-t, 5 seqs | 0.0393 | **0.0361** | 0.0364 | 0.0399 |
+| total time (s) | 297.1 | **135.9** | 146.0 | 153.7 |
+
+- The speed-up is not from a sparser map: the densest setting (0.05) is the
+  fastest. It comes from the exact k-NN replacing the gather-and-sort over 7
+  voxels (up to 140 points) per query.
+- kd 0.05 has lower APE than the voxel map on 4/5 sequences and lower RPE-t on
+  all 5; the exception is `running` (+0.008 m).
+- Repeatability: all kd-tree runs gave identical results over 3 repeats. The
+  voxel map did too except on OutdoorNarrowStairs00, where APE ranged from
+  0.168 to 0.556 m.
+- 0.2 is too sparse: APE and RPE return to voxel level or worse.
+
+Default `kd_min_dist` set to 0.05.
