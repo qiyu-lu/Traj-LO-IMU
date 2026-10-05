@@ -1,6 +1,6 @@
 # Traj-LO-IMU config for the DiTer++ Forest/Lawn sequences (agent1, Ouster + ouster imu)
 # Sequences: Forest_new / lawn_go2_lower_day / lawn_go2_upper_day /
-# Lawn_go2_lower_night / Lawn_go2_upper_night (Lawn bags live on LiWeishuaiB).
+# Lawn_go2_lower_night / Lawn_go2_upper_night.
 # To switch sequence, only change dataset.path (topics/extrinsics are shared).
 dataset:
   data_type: "bag_ouster"

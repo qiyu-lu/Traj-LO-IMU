@@ -1,0 +1,201 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="1000" viewBox="0 0 1120 1000" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>Traj-LO-IMU framework</title>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#59636e"/>
+    </marker>
+    <style>
+      .t  { font-size: 15px; font-weight: 600; fill: #1f2328; text-anchor: middle; }
+      .s  { font-size: 12px; fill: #59636e; text-anchor: middle; }
+      .h  { font-size: 17px; font-weight: 700; fill: #1f2328; }
+      .p  { font-size: 16px; font-weight: 700; fill: #1f2328; }
+      .fm { font-size: 14px; font-weight: 600; fill: #1f2328; }
+      .fs { font-size: 12px; fill: #59636e; }
+      .lg { font-size: 13px; fill: #1f2328; }
+      .old { fill: #f6f8fa; stroke: #8c959f; stroke-width: 1.5; }
+      .new { fill: #ddf4ff; stroke: #0969da; stroke-width: 1.5; }
+      .a  { stroke: #59636e; stroke-width: 1.6; fill: none; marker-end: url(#arr); }
+      .ad { stroke: #59636e; stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; marker-end: url(#arr); }
+    </style>
+  </defs>
+
+  <rect width="1120" height="1000" rx="14" fill="#ffffff"/>
+
+  <!-- ============ (a) Pipeline ============ -->
+  <rect x="20" y="20" width="1080" height="630" rx="12" fill="none" stroke="#d0d7de"/>
+  <text class="p" x="40" y="52">(a) Pipeline</text>
+
+  <!-- LiDAR row -->
+  <rect class="old" x="40" y="98" width="160" height="64" rx="10"/>
+  <text class="t" x="120" y="125">LiDAR scan</text>
+  <text class="s" x="120" y="145">per-point timestamps</text>
+
+  <rect class="old" x="240" y="98" width="200" height="64" rx="10"/>
+  <text class="t" x="340" y="125">Time segmentation</text>
+  <text class="s" x="340" y="145">seg_interval, e.g. 40 ms</text>
+
+  <rect class="old" x="480" y="98" width="200" height="64" rx="10"/>
+  <text class="t" x="580" y="125">Preprocess</text>
+  <text class="s" x="580" y="145">range filter, downsample</text>
+
+  <!-- IMU row -->
+  <rect class="new" x="40" y="258" width="160" height="64" rx="10"/>
+  <text class="t" x="120" y="285">IMU</text>
+  <text class="s" x="120" y="305">gyroscope, accelerometer</text>
+
+  <rect class="new" x="240" y="258" width="200" height="64" rx="10"/>
+  <text class="t" x="340" y="285">Frame alignment</text>
+  <text class="s" x="340" y="305">to LiDAR frame, lever arm</text>
+
+  <rect class="new" x="480" y="258" width="200" height="64" rx="10"/>
+  <text class="t" x="580" y="285">Preintegration</text>
+  <text class="s" x="580" y="305">per segment, midpoint rule</text>
+
+  <rect class="new" x="480" y="378" width="200" height="64" rx="10" stroke-dasharray="6 4"/>
+  <text class="t" x="580" y="405">Static initialization</text>
+  <text class="s" x="580" y="425">gravity, gyro bias (once)</text>
+
+  <!-- Optimizer -->
+  <rect x="720" y="80" width="360" height="440" rx="12" fill="#ffffff" stroke="#1f2328" stroke-width="1.8"/>
+  <text class="h" x="740" y="112">Sliding-window Gauss-Newton</text>
+  <text class="fs" x="740" y="134">one knot state at each segment boundary</text>
+
+  <text class="fm" x="740" y="168">Knot state:  R, p<tspan fill="#0969da">,  v,  b<tspan font-size="10" dy="3">g</tspan><tspan dy="-3">,  b</tspan><tspan font-size="10" dy="3">a</tspan></tspan></text>
+  <line x1="740" y1="186" x2="1060" y2="186" stroke="#d0d7de"/>
+
+  <rect x="740" y="204" width="12" height="12" fill="#8c959f"/>
+  <text class="fm" x="762" y="214">LiDAR point-to-plane</text>
+  <text class="fs" x="762" y="230">each point at its own timestamp</text>
+
+  <rect x="740" y="246" width="12" height="12" fill="#0969da"/>
+  <text class="fm" x="762" y="256">IMU preintegration</text>
+  <text class="fs" x="762" y="272">9-dim residual on rotation, velocity, position</text>
+
+  <rect x="740" y="288" width="12" height="12" fill="#0969da"/>
+  <text class="fm" x="762" y="298">Bias random walk</text>
+  <text class="fs" x="762" y="314">between consecutive knots</text>
+
+  <rect x="740" y="330" width="12" height="12" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+  <text class="fm" x="762" y="340">Marginalization prior</text>
+  <text class="fs" x="762" y="356">extended from 6 to 15 DoF</text>
+
+  <rect x="740" y="372" width="12" height="12" fill="#ffffff" stroke="#8c959f" stroke-width="1.5" stroke-dasharray="3 2"/>
+  <text class="fm" x="762" y="382">Kinematic prior</text>
+  <text class="fs" x="762" y="398">Traj-LO's motion term, used only without IMU</text>
+
+  <line x1="740" y1="420" x2="1060" y2="420" stroke="#d0d7de"/>
+  <text class="fm" x="740" y="446">Initial guess for a new knot</text>
+  <text class="fs" x="740" y="466">IMU prediction of pose and velocity</text>
+  <text class="fs" x="740" y="484">(constant-velocity model without IMU)</text>
+
+  <!-- Bottom row -->
+  <rect class="old" x="480" y="556" width="200" height="64" rx="10"/>
+  <text class="t" x="580" y="583">Trajectory</text>
+  <text class="s" x="580" y="603">poses leaving the window</text>
+
+  <rect class="new" x="720" y="556" width="165" height="64" rx="10"/>
+  <text class="t" x="802" y="583">Marginalize</text>
+  <text class="s" x="802" y="603">Schur complement</text>
+
+  <rect class="old" x="915" y="556" width="165" height="64" rx="10"/>
+  <text class="t" x="997" y="583">Voxel map update</text>
+  <text class="s" x="997" y="603">insert oldest segment</text>
+
+  <!-- Arrows -->
+  <line class="a" x1="200" y1="130" x2="238" y2="130"/>
+  <line class="a" x1="440" y1="130" x2="478" y2="130"/>
+  <line class="a" x1="680" y1="130" x2="718" y2="130"/>
+  <line class="a" x1="200" y1="290" x2="238" y2="290"/>
+  <line class="a" x1="440" y1="290" x2="478" y2="290"/>
+  <line class="a" x1="680" y1="290" x2="718" y2="290"/>
+  <path class="a" d="M340,322 V410 H478"/>
+  <line class="a" x1="680" y1="410" x2="718" y2="410"/>
+  <path class="ad" d="M340,162 V206 H580 V256"/>
+  <text class="fs" x="458" y="200" text-anchor="middle">segment boundaries</text>
+  <line class="a" x1="802" y1="520" x2="802" y2="554"/>
+  <line class="a" x1="885" y1="588" x2="913" y2="588"/>
+  <line class="a" x1="997" y1="556" x2="997" y2="522"/>
+  <text class="fs" x="1005" y="543">map</text>
+  <line class="a" x1="720" y1="588" x2="682" y2="588"/>
+
+  <!-- Legend (a) -->
+  <rect class="old" x="40" y="566" width="18" height="14" rx="3"/>
+  <text class="lg" x="66" y="578">from Traj-LO</text>
+  <rect class="new" x="40" y="594" width="18" height="14" rx="3"/>
+  <text class="lg" x="66" y="606">added or extended in this repo</text>
+
+  <!-- ============ (b) Factor graph ============ -->
+  <rect x="20" y="670" width="1080" height="310" rx="12" fill="none" stroke="#d0d7de"/>
+  <text class="p" x="40" y="702">(b) Factors in the sliding window</text>
+
+  <!-- piecewise-linear trajectory -->
+  <polyline points="260,820 500,820 740,820 980,820" fill="none" stroke="#d0d7de" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- LiDAR factors (above) -->
+  <g stroke="#8c959f" stroke-width="1.5">
+    <line x1="380" y1="757" x2="268" y2="806"/><line x1="380" y1="757" x2="492" y2="806"/>
+    <line x1="620" y1="757" x2="508" y2="806"/><line x1="620" y1="757" x2="732" y2="806"/>
+    <line x1="860" y1="757" x2="748" y2="806"/><line x1="860" y1="757" x2="972" y2="806"/>
+  </g>
+  <g fill="#8c959f">
+    <rect x="373" y="743" width="14" height="14"/>
+    <rect x="613" y="743" width="14" height="14"/>
+    <rect x="853" y="743" width="14" height="14"/>
+  </g>
+  <!-- scan points of each segment -->
+  <g fill="#8c959f" opacity="0.55">
+    <circle cx="300" cy="728" r="2.5"/><circle cx="330" cy="716" r="2.5"/><circle cx="355" cy="731" r="2.5"/><circle cx="410" cy="719" r="2.5"/><circle cx="440" cy="733" r="2.5"/><circle cx="465" cy="722" r="2.5"/>
+    <circle cx="540" cy="724" r="2.5"/><circle cx="570" cy="735" r="2.5"/><circle cx="595" cy="717" r="2.5"/><circle cx="650" cy="729" r="2.5"/><circle cx="678" cy="718" r="2.5"/><circle cx="705" cy="732" r="2.5"/>
+    <circle cx="780" cy="719" r="2.5"/><circle cx="808" cy="733" r="2.5"/><circle cx="835" cy="722" r="2.5"/><circle cx="890" cy="735" r="2.5"/><circle cx="918" cy="717" r="2.5"/><circle cx="946" cy="728" r="2.5"/>
+  </g>
+
+  <!-- IMU factors (below) -->
+  <g stroke="#0969da" stroke-width="1.5">
+    <line x1="380" y1="883" x2="268" y2="834"/><line x1="380" y1="883" x2="492" y2="834"/>
+    <line x1="620" y1="883" x2="508" y2="834"/><line x1="620" y1="883" x2="732" y2="834"/>
+    <line x1="860" y1="883" x2="748" y2="834"/><line x1="860" y1="883" x2="972" y2="834"/>
+  </g>
+  <g fill="#0969da">
+    <rect x="373" y="883" width="14" height="14"/>
+    <rect x="613" y="883" width="14" height="14"/>
+    <rect x="853" y="883" width="14" height="14"/>
+  </g>
+
+  <!-- marginalization prior -->
+  <line x1="157" y1="820" x2="236" y2="820" stroke="#0969da" stroke-width="1.5"/>
+  <rect x="143" y="813" width="14" height="14" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+  <text class="fs" x="150" y="852" text-anchor="middle">prior from</text>
+  <text class="fs" x="150" y="867" text-anchor="middle">marginalized</text>
+  <text class="fs" x="150" y="882" text-anchor="middle">knots</text>
+
+  <!-- knots -->
+  <g fill="#ffffff" stroke="#1f2328" stroke-width="2">
+    <circle cx="260" cy="820" r="24"/><circle cx="500" cy="820" r="24"/>
+    <circle cx="740" cy="820" r="24"/><circle cx="980" cy="820" r="24"/>
+  </g>
+  <g class="fm" text-anchor="middle" font-size="16">
+    <text x="260" y="826" text-anchor="middle">x<tspan font-size="11" dy="4">0</tspan></text>
+    <text x="500" y="826" text-anchor="middle">x<tspan font-size="11" dy="4">1</tspan></text>
+    <text x="740" y="826" text-anchor="middle">x<tspan font-size="11" dy="4">2</tspan></text>
+    <text x="980" y="826" text-anchor="middle">x<tspan font-size="11" dy="4">3</tspan></text>
+  </g>
+
+  <!-- IMU samples and segment span -->
+  <g stroke="#0969da" stroke-width="1.2" opacity="0.7">
+    <line x1="260" y1="922" x2="260" y2="932"/><line x1="280" y1="922" x2="280" y2="932"/><line x1="300" y1="922" x2="300" y2="932"/><line x1="320" y1="922" x2="320" y2="932"/><line x1="340" y1="922" x2="340" y2="932"/><line x1="360" y1="922" x2="360" y2="932"/><line x1="380" y1="922" x2="380" y2="932"/><line x1="400" y1="922" x2="400" y2="932"/><line x1="420" y1="922" x2="420" y2="932"/><line x1="440" y1="922" x2="440" y2="932"/><line x1="460" y1="922" x2="460" y2="932"/><line x1="480" y1="922" x2="480" y2="932"/><line x1="500" y1="922" x2="500" y2="932"/>
+    <line x1="520" y1="922" x2="520" y2="932"/><line x1="540" y1="922" x2="540" y2="932"/><line x1="560" y1="922" x2="560" y2="932"/><line x1="580" y1="922" x2="580" y2="932"/><line x1="600" y1="922" x2="600" y2="932"/><line x1="620" y1="922" x2="620" y2="932"/><line x1="640" y1="922" x2="640" y2="932"/><line x1="660" y1="922" x2="660" y2="932"/><line x1="680" y1="922" x2="680" y2="932"/><line x1="700" y1="922" x2="700" y2="932"/><line x1="720" y1="922" x2="720" y2="932"/><line x1="740" y1="922" x2="740" y2="932"/>
+    <line x1="760" y1="922" x2="760" y2="932"/><line x1="780" y1="922" x2="780" y2="932"/><line x1="800" y1="922" x2="800" y2="932"/><line x1="820" y1="922" x2="820" y2="932"/><line x1="840" y1="922" x2="840" y2="932"/><line x1="860" y1="922" x2="860" y2="932"/><line x1="880" y1="922" x2="880" y2="932"/><line x1="900" y1="922" x2="900" y2="932"/><line x1="920" y1="922" x2="920" y2="932"/><line x1="940" y1="922" x2="940" y2="932"/><line x1="960" y1="922" x2="960" y2="932"/><line x1="980" y1="922" x2="980" y2="932"/>
+  </g>
+  <line x1="260" y1="927" x2="980" y2="927" stroke="#0969da" stroke-width="1" opacity="0.4"/>
+  <text class="fs" x="1000" y="931">IMU samples</text>
+  <path d="M260,946 V952 H500 V946" fill="none" stroke="#59636e" stroke-width="1.2"/>
+  <text class="fs" x="380" y="968" text-anchor="middle">one segment (seg_interval)</text>
+
+  <!-- Legend (b) -->
+  <rect x="640" y="690" width="12" height="12" fill="#8c959f"/>
+  <text class="lg" x="660" y="701">LiDAR point-to-plane</text>
+  <rect x="820" y="690" width="12" height="12" fill="#0969da"/>
+  <text class="lg" x="840" y="701">IMU preintegration + bias walk</text>
+  <text class="fs" x="40" y="728">Trajectory between knots is linear,</text>
+  <text class="fs" x="40" y="744">so every point gets its own pose.</text>
+</svg>
