@@ -42,6 +42,7 @@ include_directories(include)
 
 add_definitions("-D SOPHUS_USE_BASIC_LOGGING")
 include_directories(thirdparty/Sophus)
+include_directories(thirdparty/likd-tree)
 
 add_executable(trajlo run_trajlo.cpp
         src/io/data_loader.cpp
