@@ -83,6 +83,12 @@ namespace traj {
         planer_thresh = config["mapping"]["planer_thresh"].as<float>();
         max_range = config["mapping"]["max_range"].as<float>();
         min_range = config["mapping"]["min_range"].as<float>();
+        if (config["mapping"]["map_type"])
+            map_type = config["mapping"]["map_type"].as<std::string>();
+        if (config["mapping"]["kd_min_dist"])
+            kd_min_dist = config["mapping"]["kd_min_dist"].as<float>();
+        if (config["mapping"]["kd_max_nn_dist"])
+            kd_max_nn_dist = config["mapping"]["kd_max_nn_dist"].as<float>();
 
         // vis
         frame_num=config["vis"]["frame_num"].as<int>();

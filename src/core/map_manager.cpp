@@ -52,7 +52,64 @@ void MapManager::PreProcess(const std::vector<Eigen::Vector4d> &points,
       DownSampling(map_points_database[tp], ds_size_ * 1.5);
 }
 
+void MapManager::UseKdTree(double min_dist, double max_nn_dist) {
+  kdtree_ = std::make_unique<KdTree>();
+  kd_min_dist_ = min_dist;
+  kd_max_nn_dist_ = max_nn_dist;
+}
+
+// Insert the points that have no map point within kd_min_dist_, which keeps
+// the map density bounded the way max_voxel_num does for the voxel map.
+void MapManager::InsertKd(const std::vector<Eigen::Vector3d> &points) {
+  std::vector<char> keep(points.size(), 1);
+  tbb::parallel_for(size_t(0), points.size(), [&](size_t i) {
+    const MapPoint q{float(points[i].x()), float(points[i].y()),
+                     float(points[i].z())};
+    PointVector<MapPoint> nn;
+    std::vector<float> dist;
+    kdtree_->knnSearch(q, 1, nn, dist, float(kd_min_dist_));
+    keep[i] = nn.empty();
+  });
+
+  PointVector<MapPoint> to_add;
+  to_add.reserve(points.size());
+  for (size_t i = 0; i < points.size(); ++i) {
+    if (!keep[i]) continue;
+    to_add.push_back({float(points[i].x()), float(points[i].y()),
+                      float(points[i].z())});
+  }
+  // wait so that the next registration sees the whole map
+  kdtree_->addPoints(to_add, true);
+}
+
+// Delete everything outside the cube of half-size max_range_ around center.
+// Only done once the platform has moved a tenth of max_range_.
+void MapManager::PruneKd(const Eigen::Vector3d &center) {
+  if ((center - kd_prune_center_).norm() < 0.1 * max_range_) return;
+  kd_prune_center_ = center;
+
+  constexpr float kFar = 1e7f;
+  std::vector<KdTree::AABB> boxes;
+  for (int axis = 0; axis < 3; ++axis) {
+    std::array<float, 3> lo{-kFar, -kFar, -kFar}, hi{kFar, kFar, kFar};
+    hi[axis] = float(center[axis] - max_range_);
+    boxes.emplace_back(lo, hi);
+    lo[axis] = float(center[axis] + max_range_);
+    hi[axis] = kFar;
+    boxes.emplace_back(lo, hi);
+  }
+  kdtree_->deleteBoxes(boxes, true);
+}
+
 void MapManager::MapInit(const std::vector<Eigen::Vector4d> &points) {
+  if (kdtree_) {
+    std::vector<Eigen::Vector3d> pts;
+    pts.reserve(points.size());
+    for (const auto &p : points) pts.emplace_back(p.head<3>());
+    InsertKd(pts);
+    return;
+  }
+
   //    const auto& ds=downSampling(points, voxel_size );
   const auto &ds = points;
 
@@ -79,6 +136,14 @@ void MapManager::Update(const posePair &pp, const tStampPair &tp) {
     Sophus::SE3d T_w_i = pp.first * T_b_i;
     points_transformed[i] = T_w_i * ds_points_map[i].head<3>();
   });
+
+  if (kdtree_) {
+    InsertKd(points_transformed);
+    PruneKd(pp.first.translation());
+    map_points_database.erase(tp);
+    reg_points_database.erase(tp);
+    return;
+  }
 
   std::for_each(
       points_transformed.cbegin(), points_transformed.cend(),
@@ -166,37 +231,40 @@ void MapManager::PointRegistrationNormal(/*const posePair& pp,*/
           Eigen::Vector3d point = ds_points_reg[i].head<3>();
           Eigen::Vector3d p_in_world = T_w_i_cur * point;
 
-          auto kx = static_cast<int>(p_in_world[0] / voxel_size_);
-          auto ky = static_cast<int>(p_in_world[1] / voxel_size_);
-          auto kz = static_cast<int>(p_in_world[2] / voxel_size_);
-          const auto key = Voxel(kx, ky, kz);
-
-          std::vector<Voxel> voxels;
-          voxels.reserve(7);
-          for (const auto &c : coord) {
-            voxels.emplace_back(key + c);
-          }
-
           std::vector<Eigen::Vector3d> neighboors;
-          neighboors.reserve(7 * max_points_per_voxel_);
-          std::for_each(voxels.cbegin(), voxels.cend(), [&](const auto &voxel) {
-            auto search = map.find(voxel);
-            if (search != map.end()) {
-              const auto &points = search->second.points;
-              if (!points.empty()) {
-                for (const auto &point : points) {
+          if (kdtree_) {
+            // exact 5-NN, already sorted by distance
+            PointVector<MapPoint> nn;
+            std::vector<float> dist;
+            kdtree_->knnSearch(
+                MapPoint{float(p_in_world.x()), float(p_in_world.y()),
+                         float(p_in_world.z())},
+                5, nn, dist, float(kd_max_nn_dist_));
+            neighboors.reserve(nn.size());
+            for (const auto &q : nn) neighboors.emplace_back(q.x, q.y, q.z);
+          } else {
+            auto kx = static_cast<int>(p_in_world[0] / voxel_size_);
+            auto ky = static_cast<int>(p_in_world[1] / voxel_size_);
+            auto kz = static_cast<int>(p_in_world[2] / voxel_size_);
+            const auto key = Voxel(kx, ky, kz);
+
+            neighboors.reserve(7 * max_points_per_voxel_);
+            for (const auto &c : coord) {
+              auto search = map.find(key + c);
+              if (search != map.end()) {
+                for (const auto &point : search->second.points) {
                   neighboors.emplace_back(point);
                 }
               }
             }
-          });
 
-          // find closet five point for normal estimation
-          std::sort(neighboors.begin(), neighboors.end(),
-                    [&](const Eigen::Vector3d &p1, const Eigen::Vector3d &p2) {
-                      return (p1 - p_in_world).squaredNorm() <
-                             (p2 - p_in_world).squaredNorm();
-                    });
+            // find closet five point for normal estimation
+            std::sort(neighboors.begin(), neighboors.end(),
+                      [&](const Eigen::Vector3d &p1, const Eigen::Vector3d &p2) {
+                        return (p1 - p_in_world).squaredNorm() <
+                               (p2 - p_in_world).squaredNorm();
+                      });
+          }
           if (neighboors.size() < 5) continue;
           if ((neighboors[0] - p_in_world).norm() > range_thresh) continue;
 

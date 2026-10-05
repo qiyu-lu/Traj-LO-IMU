@@ -43,6 +43,10 @@ include_directories(include)
 add_definitions("-D SOPHUS_USE_BASIC_LOGGING")
 include_directories(thirdparty/Sophus)
 include_directories(thirdparty/likd-tree)
+# likd-tree includes <execution>; GCC 9 would then pull in its TBB backend,
+# which does not build against the bundled oneTBB. likd-tree runs sequentially
+# without LIKD_TREE_USE_TBB, so the serial backend is enough.
+add_definitions(-D_GLIBCXX_USE_TBB_PAR_BACKEND=0 -DPSTL_USE_PARALLEL_POLICIES=0)
 
 add_executable(trajlo run_trajlo.cpp
         src/io/data_loader.cpp

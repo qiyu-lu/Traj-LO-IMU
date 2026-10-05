@@ -77,6 +77,10 @@ struct TrajConfig {
   float planer_thresh;
   float max_range;
   float min_range;
+  // map structure: "voxel" (Traj-LO's voxel hash) or "kdtree" (likd-tree)
+  std::string map_type = "voxel";
+  float kd_min_dist = 0.1;     // skip a new map point closer than this to the map
+  float kd_max_nn_dist = 1.0;  // drop k-NN neighbors farther than this
 
   // vis
   int frame_num;

@@ -46,6 +46,9 @@ community.
 #include <tbb/parallel_reduce.h>
 #include <tsl/robin_map.h>
 
+#include <likd_tree.hpp>
+#include <memory>
+
 #include <trajlo/utils/common_type.h>
 #include <trajlo/utils/sophus_utils.hpp>
 
@@ -75,6 +78,11 @@ class MapManager {
              (vec[0] * 73856093 ^ vec[1] * 19349663 ^ vec[2] * 83492791);
     }
   };
+
+  struct MapPoint {
+    float x, y, z;
+  };
+  using KdTree = KDTree<MapPoint>;
 
   MapManager(double ds_size, double voxel_size, double planer_threshold,
              int max_voxel_num, double max_range)
@@ -126,6 +134,9 @@ class MapManager {
                                Eigen::Matrix<double, 12, 12> &H_icp,
                                Eigen::Matrix<double, 12, 1> &b_icp,
                                double &error, double &inliers);
+
+  // Switch the map from the voxel hash to a likd-tree. Call before MapInit.
+  void UseKdTree(double min_dist, double max_nn_dist);
 
   inline bool IsInit() { return init_flag; }
 
@@ -179,6 +190,14 @@ class MapManager {
   double planer_threshold_ = 0.01;
   int max_points_per_voxel_ = 20;
   tsl::robin_map<Voxel, VoxelBlock, VoxelHash> map;
+
+  // kd-tree map (used instead of `map` when kdtree_ is set)
+  void InsertKd(const std::vector<Eigen::Vector3d> &points);
+  void PruneKd(const Eigen::Vector3d &center);
+  std::unique_ptr<KdTree> kdtree_;
+  double kd_min_dist_ = 0.1;
+  double kd_max_nn_dist_ = 1.0;
+  Eigen::Vector3d kd_prune_center_ = Eigen::Vector3d::Zero();
 
   std::map<tStampPair, std::vector<Eigen::Vector4d>> reg_points_database;
   std::map<tStampPair, std::vector<Eigen::Vector4d>> map_points_database;

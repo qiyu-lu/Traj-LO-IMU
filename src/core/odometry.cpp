@@ -56,6 +56,12 @@ TrajLOdometry::TrajLOdometry(const TrajConfig& config)
   map_.reset(new MapManager(config.ds_size, config.voxel_size,
                             config.planer_thresh, config.max_voxel_num,
                             config.max_range));
+  if (config.map_type == "kdtree") {
+    map_->UseKdTree(config.kd_min_dist, config.kd_max_nn_dist);
+  } else if (config.map_type != "voxel") {
+    std::cerr << "unknown mapping.map_type '" << config.map_type
+              << "', using voxel" << std::endl;
+  }
 
   // setup marginalization
   marg_H.setZero(POSE_SIZE, POSE_SIZE);
