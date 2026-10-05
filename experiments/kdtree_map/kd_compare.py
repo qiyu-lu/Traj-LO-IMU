@@ -4,8 +4,9 @@
 Configs come from the bench's trajlio-p0 runs (same calibration / params);
 only dataset.pose_file_path and mapping.map_type are changed.
 Usage: kd_compare.py OUT_DIR [variant=key:val,... ...]
+Env: SEQS=seq1,seq2 limits the sequences, REPS=n repeats every run.
 """
-import json, subprocess, sys, time
+import json, os, subprocess, sys, time
 from pathlib import Path
 import yaml
 
@@ -27,15 +28,22 @@ SEQS = [
     ("quadruped", "OutdoorNarrowStairs00", QD / "GT_OutdoorNarrowStairs00.txt"),
 ]
 
+if os.environ.get("SEQS"):
+    keep = os.environ["SEQS"].split(",")
+    SEQS = [x for x in SEQS if x[1] in keep]
+REPS = int(os.environ.get("REPS", "1"))
+
 out = Path(sys.argv[1]); out.mkdir(parents=True, exist_ok=True)
 variants = {}
 for spec in sys.argv[2:] or ["voxel=map_type:voxel", "kdtree=map_type:kdtree"]:
     name, kv = spec.split("=", 1)
     variants[name] = dict(x.split(":", 1) for x in kv.split(","))
 
-for ds, seq, gt in SEQS:
+for rep in range(REPS):
+  for ds, seq, gt in SEQS:
     for name, mapping in variants.items():
-        run = out / f"{name}__{ds}__{seq}"
+        run = out / f"{name}__{ds}__{seq}" if REPS == 1 else \
+            out / f"{name}__{ds}__{seq}__r{rep}"
         res_file = run / "result.json"
         if res_file.exists():
             continue
@@ -49,7 +57,7 @@ for ds, seq, gt in SEQS:
         with open(run / "run.log", "w") as log:
             rc = subprocess.call([BIN, str(run / "config.yaml")], stdout=log,
                                  stderr=subprocess.STDOUT, timeout=3600)
-        r = {"variant": name, "dataset": ds, "seq": seq, "rc": rc,
+        r = {"variant": name, "dataset": ds, "seq": seq, "rep": rep, "rc": rc,
              "duration_s": round(time.time() - t0, 1)}
         try:
             ev = evaluate(str(gt), str(run / "traj.tum"), align=True)
