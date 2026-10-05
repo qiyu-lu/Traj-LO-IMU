@@ -25,6 +25,8 @@ SEQS = [
     ("quadruped", "Rescue00", QD / "GT_Rescue00.txt"),
     ("quadruped", "Hill00", QD / "GT_Hill00.txt"),
     ("quadruped", "IndoorStairwell00", QD / "GT_IndoorStairwell00.txt"),
+    ("quadruped", "IndoorStairwell01", QD / "GT_IndoorStairwell01.txt"),
+    ("quadruped", "BuildingOutside00", QD / "GT_BuildingOutside00.txt"),
     ("quadruped", "OutdoorNarrowStairs00", QD / "GT_OutdoorNarrowStairs00.txt"),
 ]
 

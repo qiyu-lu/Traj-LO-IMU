@@ -1,6 +1,6 @@
 # Traj-LO-IMU
 
-**Traj-LO with IMU preintegration.** A LiDAR-inertial odometry built on the continuous-time LiDAR odometry [Traj-LO](https://github.com/kevin2431/Traj-LO), adding IMU preintegration factors to its sliding-window optimization for better robustness in geometrically degenerate scenes.
+**Traj-LO with IMU preintegration.** A LiDAR-inertial odometry built on the continuous-time LiDAR odometry [Traj-LO](https://github.com/kevin2431/Traj-LO), adding IMU preintegration factors to its sliding-window optimization for better robustness in geometrically degenerate scenes, and keeping the map in an incremental kd-tree ([likd-tree](https://github.com/qiyu-lu/likd-tree)) instead of a voxel hash.
 
 > [!IMPORTANT]
 > This is an **unofficial** extension of Traj-LO (Xin Zheng and Jianke Zhu). It is **not** the implementation or a reproduction of
@@ -22,15 +22,16 @@
 3. **Static initialization.** During the first `init_time` seconds the platform must be static. Gravity is taken from the mean accelerometer reading (its measured magnitude, not a fixed 9.81) and the gyroscope bias from the mean gyroscope reading.
 4. **Preintegration.** For each segment, IMU samples are preintegrated with the midpoint rule (Forster et al., TRO 2017). Virtual samples are interpolated exactly at both segment boundaries. Bias changes use first-order correction Jacobians.
 5. **Factors in the window.**
-   - LiDAR point-to-plane against a voxel map (from Traj-LO).
+   - LiDAR point-to-plane against the map (from Traj-LO).
    - IMU preintegration, a 9-dim residual on rotation, velocity and position.
    - Bias random walk between consecutive knots.
    - Marginalization prior, extended from 6 to 15 DoF.
 
    When a segment has an IMU factor, that factor **replaces** Traj-LO's kinematic prior (the constant-motion term) for the segment. Without IMU, or before initialization, Traj-LO's original terms are used unchanged.
 6. **Prediction.** The IMU prediction gives the initial pose and velocity of each new knot.
+7. **Map.** The map is a [likd-tree](https://github.com/qiyu-lu/likd-tree), a header-only incremental kd-tree with background rebalancing. Each registered point takes its exact 5 nearest neighbors for the plane fit. Traj-LO's voxel map took the 5 nearest among the points of 7 neighboring voxels and had to sort them. A new map point is skipped if one already lies within `kd_min_dist`. Points farther than `max_range` are box-deleted as the platform moves. The voxel map is still available with `map_type: voxel`.
 
-The window is solved with Gauss-Newton. The oldest knot is then marginalized by Schur complement, and its segment's points are inserted into the voxel map.
+The window is solved with Gauss-Newton. The oldest knot is then marginalized by Schur complement, and its segment's points are inserted into the map.
 
 ## Build
 
@@ -45,7 +46,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j8
 ```
 
-Eigen, Sophus, yaml-cpp, GLM, robin-map and oneTBB are git submodules in `thirdparty/`, pinned to the same commits as upstream Traj-LO; ImGui, ImPlot and the rosbag reader are included directly.
+Eigen, Sophus, yaml-cpp, GLM, robin-map and oneTBB are git submodules in `thirdparty/`, pinned to the same commits as upstream Traj-LO; ImGui, ImPlot, the rosbag reader and the likd-tree header are included directly.
 If you cloned without `--recursive`, run `git submodule update --init --recursive`. GitHub's "Download ZIP" does not include submodules, so please use `git clone`.
 If CMake fails inside oneTBB under a non-English locale, run `export LANG=C LC_ALL=C` first.
 
@@ -98,6 +99,19 @@ imu:
   init_time: 0.8             # static initialization span [s]
 ```
 
+### Map configuration
+
+```yaml
+mapping:
+  map_type: kdtree       # kdtree (default) or voxel (Traj-LO's original voxel hash)
+  kd_min_dist: 0.05      # kdtree: skip a new map point closer than this [m]
+  kd_max_nn_dist: 1.0    # kdtree: ignore neighbors farther than this [m]
+  voxel_size: 0.4        # voxel map only
+  max_voxel_num: 20      # voxel map only
+```
+
+On the sequences we tried, the kd-tree map runs about 2x faster end to end than the voxel map, with similar or lower error (see [experiments/kdtree_map/RESULTS.md](experiments/kdtree_map/RESULTS.md)).
+
 ### Tips
 
 - **Start static.** The first `init_time` seconds are used for initialization. A warning is printed if the gyroscope was clearly moving.
@@ -107,21 +121,21 @@ imu:
 
 ## Results
 
-APE RMSE in meters (SE(3)-aligned, lower is better) on selected legged-robot sequences. ✗ means the run diverged (APE > 5 m).
+APE RMSE in meters (SE(3)-aligned, lower is better) on selected legged-robot sequences. ✗ means the run diverged (APE > 5 m). Traj-LO-IMU is shown with the default kd-tree map and with Traj-LO's voxel map (`map_type: voxel`).
 
-| Dataset | Sequence | Traj-LO | FAST-LIO2 | **Traj-LO-IMU** |
-|---|---|---:|---:|---:|
-| Leg-KILO | indoor | 0.058 | 0.315 | **0.057** |
-| Leg-KILO | running | 0.065 | 0.138 | **0.062** |
-| Quadruped-SLAM | BuildingInside00 | 0.114 | 0.128 | **0.093** |
-| Quadruped-SLAM | BuildingOutside00 | ✗ | 0.473 | **0.095** |
-| Quadruped-SLAM | Rescue00 | 0.149 | 2.385 | **0.116** |
-| Quadruped-SLAM | IndoorStairwell00 | ✗ | ✗ | **0.160** |
-| Quadruped-SLAM | IndoorStairwell01 | 1.571 | ✗ | **0.156** |
-| Quadruped-SLAM | OutdoorNarrowStairs00 | ✗ | ✗ | **0.167** |
+| Dataset | Sequence | Traj-LO | FAST-LIO2 | Traj-LO-IMU (voxel) | Traj-LO-IMU (kd-tree) |
+|---|---|---:|---:|---:|---:|
+| Leg-KILO | indoor | 0.058 | 0.315 | 0.057 | **0.052** |
+| Leg-KILO | running | 0.065 | 0.138 | **0.062** | 0.069 |
+| Quadruped-SLAM | BuildingInside00 | 0.114 | 0.128 | 0.093 | **0.090** |
+| Quadruped-SLAM | BuildingOutside00 | ✗ | 0.473 | **0.095** | **0.095** |
+| Quadruped-SLAM | Rescue00 | 0.149 | 2.385 | **0.116** | 0.120 |
+| Quadruped-SLAM | IndoorStairwell00 | ✗ | ✗ | 0.160 | **0.132** |
+| Quadruped-SLAM | IndoorStairwell01 | 1.571 | ✗ | **0.156** | 0.161 |
+| Quadruped-SLAM | OutdoorNarrowStairs00 | ✗ | ✗ | **0.167** | 0.178 |
 
-Over all 32 benchmarked sequences (Leg-KILO, Quadruped-SLAM, DiTer++), Traj-LO-IMU finished **32/32** without divergence, compared with 22/32 for Traj-LO and 27/32 for FAST-LIO2.
-The main gain is **robustness** in degenerate scenes such as stairwells. On sequences where Traj-LO already works well, such as most of DiTer++, the accuracy is about the same.
+With the voxel map, Traj-LO-IMU finished all **32/32** benchmarked sequences (Leg-KILO, Quadruped-SLAM, DiTer++) without divergence, compared with 22/32 for Traj-LO and 27/32 for FAST-LIO2. The kd-tree map has so far been run only on the sequences above.
+The main gain from the IMU is **robustness** in degenerate scenes such as stairwells. On sequences where Traj-LO already works well, such as most of DiTer++, the accuracy is about the same. The kd-tree map mainly brings speed: about 2x faster end to end than the voxel map, at similar accuracy.
 
 ## Fixes to the upstream code
 
@@ -146,6 +160,8 @@ This work is built entirely on [Traj-LO](https://github.com/kevin2431/Traj-LO). 
   doi     = {10.1109/LRA.2024.3352360}
 }
 ```
+
+The map uses [likd-tree](https://github.com/qiyu-lu/likd-tree), an incremental kd-tree that continues [scomup/likd-tree](https://github.com/scomup/likd-tree) by Liu Yang; its header is vendored in `thirdparty/likd-tree/` under its MIT license.
 
 The IMU preintegration follows C. Forster et al., *On-Manifold Preintegration for Real-Time Visual-Inertial Odometry*, IEEE TRO 2017.
 

@@ -54,3 +54,8 @@ in meters; the range over the 3 runs is given where it is not zero.
 - 0.2 is too sparse: APE and RPE return to voxel level or worse.
 
 Default `kd_min_dist` set to 0.05.
+
+## README sequences with the default (kd 0.05)
+
+Single runs, for the README table: Rescue00 0.1204, IndoorStairwell01 0.1608,
+BuildingOutside00 0.0950 (APE, m); the other five are from the sweep above.
