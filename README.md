@@ -107,7 +107,21 @@ imu:
 
 ## Results
 
-Quantitative results are being prepared and will be added here. So far, the main benefit we observe is **robustness**: on legged-robot sequences where LiDAR-only Traj-LO diverges, such as stairwells, the IMU version converges.
+APE RMSE in meters (SE(3)-aligned, lower is better) on selected legged-robot sequences. ✗ means the run diverged (APE > 5 m).
+
+| Dataset | Sequence | Traj-LO | FAST-LIO2 | **Traj-LO-IMU** |
+|---|---|---:|---:|---:|
+| Leg-KILO | indoor | 0.058 | 0.315 | **0.057** |
+| Leg-KILO | running | 0.065 | 0.138 | **0.062** |
+| Quadruped-SLAM | BuildingInside00 | 0.114 | 0.128 | **0.093** |
+| Quadruped-SLAM | BuildingOutside00 | ✗ | 0.473 | **0.095** |
+| Quadruped-SLAM | Rescue00 | 0.149 | 2.385 | **0.116** |
+| Quadruped-SLAM | IndoorStairwell00 | ✗ | ✗ | **0.160** |
+| Quadruped-SLAM | IndoorStairwell01 | 1.571 | ✗ | **0.156** |
+| Quadruped-SLAM | OutdoorNarrowStairs00 | ✗ | ✗ | **0.167** |
+
+Over all 32 benchmarked sequences (Leg-KILO, Quadruped-SLAM, DiTer++), Traj-LO-IMU finished **32/32** without divergence, compared with 22/32 for Traj-LO and 27/32 for FAST-LIO2.
+The main gain is **robustness** in degenerate scenes such as stairwells. On sequences where Traj-LO already works well, such as most of DiTer++, the accuracy is about the same.
 
 ## Fixes to the upstream code
 
