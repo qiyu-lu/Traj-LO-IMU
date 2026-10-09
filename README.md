@@ -137,6 +137,14 @@ APE RMSE in meters (SE(3)-aligned, lower is better) on selected legged-robot seq
 With the voxel map, Traj-LO-IMU finished all **32/32** benchmarked sequences (Leg-KILO, Quadruped-SLAM, DiTer++) without divergence, compared with 22/32 for Traj-LO and 27/32 for FAST-LIO2. The kd-tree map has so far been run only on the sequences above.
 The main gain from the IMU is **robustness** in degenerate scenes such as stairwells. On sequences where Traj-LO already works well, such as most of DiTer++, the accuracy is about the same. The kd-tree map mainly brings speed: about 2x faster end to end than the voxel map, at similar accuracy.
 
+### OutdoorNarrowStairs00 visualization
+
+Runs on the Quadruped-SLAM `OutdoorNarrowStairs00.bag` sequence:
+
+| Traj-LO (LiDAR only) | Traj-LO-IMU |
+|:---:|:---:|
+| <img src="doc/traj-lo.gif" width="400" alt="Traj-LO visualization on OutdoorNarrowStairs00"> | <img src="doc/traj-lo-imu.gif" width="400" alt="Traj-LO-IMU visualization on OutdoorNarrowStairs00"> |
+
 ## Fixes to the upstream code
 
 Two bugs in the original Traj-LO code are fixed here and apply to the LiDAR-only mode as well:
